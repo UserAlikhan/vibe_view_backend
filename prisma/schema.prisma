@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ROLES {
+  ADMIN
+  USER
+}
+
+model Users {
+  id Int @default(autoincrement()) @id
+  clerk_id Int? @unique
+  email String @unique
+  username String @unique
+  password String
+  isGoogleAccount Boolean @default(false)
+  role ROLES @default(USER)
+
+  favorites Favorites[]
+  reviews Reviews[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Bars {
+  id Int @default(autoincrement()) @id
+  name String @unique
+  average_cocktail_price String?
+  address String @unique
+  longitude Float
+  latitude Float
+  state String
+  country String
+  city String
+  zipCode String
+  isOpen Boolean @default(false)
+  reserve_link String?
+  website_link String?
+  phone_number String?
+  description String?
+
+  favorites Favorites[]
+  reviews Reviews[]
+  images BarsImages[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BarsImages {
+  id Int @default(autoincrement()) @id
+  url String
+  bar_id Int
+
+  bar Bars @relation(fields: [bar_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reviews {
+  id Int @default(autoincrement()) @id
+  comment String
+  rating Float @default(5.00)
+  user_id Int
+  bar_id Int
+
+  user Users @relation(fields: [user_id], references: [id])
+  bar Bars @relation(fields: [bar_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Favorites {
+  id Int @default(autoincrement()) @id
+  user_id Int
+  bar_id Int
+  
+  user Users @relation(fields: [user_id], references: [id])
+  bar Bars @relation(fields: [bar_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
