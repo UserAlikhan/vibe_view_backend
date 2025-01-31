@@ -30,7 +30,9 @@ async function bootstrap() {
   app.use(helmet());
   // CORS CONFIGURUTION
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
+    // for mobile app allow all origins
+    origin: '*',
+    // origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     maxAge: 3600
