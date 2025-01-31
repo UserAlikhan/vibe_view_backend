@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import { timeout } from 'rxjs';
+import { ValidationPipe } from '@nestjs/common';
 
 // Protection agains brute force atack
 const limiter = rateLimit({
@@ -23,10 +23,9 @@ async function bootstrap() {
   // RATE LIMITER
   app.use('/auth', authLimiter);
   app.use('/users', limiter);
-  app.use('/bars', limiter);
+  // app.use('/bars', limiter);
   app.use('/reviews', limiter);
   app.use('/favorites', limiter);
-  app.use(timeout(15000));
   // HELMET
   app.use(helmet());
   // CORS CONFIGURUTION
@@ -36,6 +35,12 @@ async function bootstrap() {
     credentials: true,
     maxAge: 3600
   });
+  // VALIDATION PIPE
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+  }));
+  // LISTEN
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
