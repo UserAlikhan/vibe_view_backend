@@ -14,7 +14,7 @@ const limiter = rateLimit({
 // auth limiter
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 5, // limit each IP to 5 failed attempts per hour
+  max: 70, // limit each IP to 70 failed attempts per hour
   message: 'Too many failed attempts, please try again later',
 });
 
