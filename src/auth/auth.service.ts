@@ -17,7 +17,8 @@ export class AuthService {
 
   async login(data: { email: string; username: string; password: string }) {
     const user = await this.usersService.findByEmail(data.email);
-    if (user?.email !== data.email || user?.username !== data.username) {
+    const lowerCaseUsername = data.username.toLocaleLowerCase();
+    if (user?.email !== data.email || user?.username !== lowerCaseUsername) {
       throw new UnauthorizedException();
     }
 
@@ -28,7 +29,7 @@ export class AuthService {
 
     const payload = {
       sub: user.id,
-      username: data.username,
+      username: lowerCaseUsername,
       email: data.email,
     };
 
@@ -45,7 +46,8 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
-
+    
+    registrationDto.username = registrationDto.username.toLocaleLowerCase();
     return await this.usersService.create(registrationDto);
   }
 }

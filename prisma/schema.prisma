@@ -37,6 +37,7 @@ model Users {
 model Bars {
   id Int @default(autoincrement()) @id
   name String @unique
+  rating Float @default(0.00)
   average_cocktail_price String?
   address String @unique
   longitude Float
