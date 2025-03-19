@@ -3,8 +3,8 @@ export class FilterBarsDto {
     state?: string;
     city?: string;
     isOpen?: boolean;
-    reserve_link?: boolean;
-    website_link?: boolean;
-    phone_number?: boolean;
-    description?: boolean;
+    reserve_link?: string;
+    website_link?: string;
+    phone_number?: string;
+    description?: string;
 }

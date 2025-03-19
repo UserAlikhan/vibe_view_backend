@@ -35,13 +35,13 @@ export class BarsService {
     const options = Object.keys(Prisma.BarsScalarFieldEnum).filter(
       (key) => key !== 'id' && key !== "name" && key !== "rating" && key !== "country" && key !== "address" 
       && key !== "reserve_link" && key !== "longitude" && key !== "latitude" && key !== "zipCode" 
-      && key !== "createdAt" && key !== "updatedAt"
+      && key !== "createdAt" && key !== "updatedAt" && key !== "description"
     )
 
     const allTheData = await this.databaseService.bars.findMany();
 
     const keysWithValues = options.map((option) => {
-
+      // Creating unique set of available values for each option
       const values = [...new Set(allTheData.map((data) => data[option]))];
       const testValues = ["$60–70", "$1–10", "$90–100", "$20–30", "$40–50", "$30–40", "$10–20", "$50–60", "$70–80", "$80–90"]
 
@@ -74,8 +74,12 @@ export class BarsService {
         return { [option]: sortedValues }
       }
 
-      if (option === "isOpen" || option === "website_link" || option === "phone_number" || option === "description") {
-        return { [option]: [true, false] }
+      if (option === 'isOpen') {
+        return { [option]: ["open", "closed"] }
+      }
+
+      if (option === "website_link" || option === "phone_number") {
+        return { [option]: ["has", "no"] }
       }
 
       return { [option]: values.filter((value) => value !== "N/A" && value !== null && value !== undefined) };
@@ -87,40 +91,76 @@ export class BarsService {
   }
 
   async getBarsBasedOnFilters(filters: FilterBarsDto) {
+    console.log("FILTERSGGG ", filters)
+    if (Object.keys(filters).length === 0) return await this.databaseService.bars.findMany()
+
+    // First, only include non-undefined filters in the where clause
+    const whereClause: any = {};
+    
+    if (filters.average_cocktail_price) whereClause.average_cocktail_price = { equals: filters.average_cocktail_price };
+    if (filters.state) whereClause.state = { equals: filters.state };
+    if (filters.city) whereClause.city = { equals: filters.city };
+    if (filters.isOpen !== undefined) {
+      whereClause.isOpen = { 
+        equals: typeof filters.isOpen === "string" ? 
+               (filters.isOpen as string) === "open" : 
+               !!filters.isOpen
+      };
+    }
+    
+    // Get initial results without website_link and phone_number filters
     let filteredOptions = await this.databaseService.bars.findMany({
-      where: {
-        average_cocktail_price: {
-          equals: filters.average_cocktail_price
-        },
-        state: {
-          equals: filters.state
-        },
-        city: {
-          equals: filters.city
-        },
-        isOpen: {
-          equals: filters.isOpen
-        }
-      }
-    })
-
-    if (filters.reserve_link === true) {
-      filteredOptions = filteredOptions.filter((bar) => bar.reserve_link != "N/A" && bar.reserve_link != null && bar.reserve_link != "")
-    }
-
-    if (filters.website_link === true) {
-      filteredOptions = filteredOptions.filter((bar) => bar.website_link != "N/A" && bar.website_link != null && bar.website_link != "")
+      where: whereClause,
+      include: {
+        images: true,
+      },
+    });
+    
+    console.log("Initial results count:", filteredOptions.length);
+    
+    // Apply website_link filter if specified
+    if (filters.website_link === "has") {
+      console.log("Filtering for bars WITH website_link");
+      filteredOptions = filteredOptions.filter((bar) => 
+        bar.website_link !== "N/A" && 
+        bar.website_link !== null && 
+        bar.website_link !== undefined &&
+        bar.website_link !== ""
+      );
+    } else if (filters.website_link === "no") {
+      console.log("Filtering for bars WITHOUT website_link");
+      filteredOptions = filteredOptions.filter(bar => 
+        bar.website_link === "N/A" || 
+        bar.website_link === null || 
+        bar.website_link === undefined ||
+        bar.website_link === ""
+      );
     }
     
-    if (filters.phone_number === true) {
-      filteredOptions = filteredOptions.filter((bar) => bar.phone_number != "N/A" && bar.phone_number != null && bar.phone_number != "")
-    }
-
-    if (filters.description === true) {
-      filteredOptions = filteredOptions.filter((bar) => bar.description != "N/A" && bar.description != null && bar.description != "")
+    console.log("After website_link filter count:", filteredOptions.length);
+    
+    // Apply phone_number filter if specified
+    if (filters.phone_number === "has") {
+      console.log("Filtering for bars WITH phone_number");
+      filteredOptions = filteredOptions.filter((bar) => 
+        bar.phone_number !== "N/A" && 
+        bar.phone_number !== null && 
+        bar.phone_number !== undefined &&
+        bar.phone_number !== ""
+      );
+    } else if (filters.phone_number === "no") {
+      console.log("Filtering for bars WITHOUT phone_number");
+      filteredOptions = filteredOptions.filter(bar => 
+        bar.phone_number === "N/A" || 
+        bar.phone_number === null || 
+        bar.phone_number === undefined ||
+        bar.phone_number === ""
+      );
     }
     
-    return filteredOptions
+    console.log("Final results count:", filteredOptions.length);
+    
+    return filteredOptions;
   }
 
   async findNearestToYou(latitude: number, longitude: number) {
