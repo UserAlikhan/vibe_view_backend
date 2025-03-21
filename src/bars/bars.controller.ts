@@ -29,8 +29,13 @@ export class BarsController {
   }
 
   @Get()
-  async findAll() {
-    return await this.barsService.findAll();
+  async findAll(@Query() query: { page: number, limit: number, takeAll: string }) {
+    const takeAll = query.takeAll === "true";
+    return await this.barsService.findAll(
+      Number(query.page) || 1, 
+      Number(query.limit) || 5, 
+      takeAll
+    );
   }
 
   @Get('/filtrationOptions')

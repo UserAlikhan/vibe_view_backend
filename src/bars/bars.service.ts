@@ -11,8 +11,12 @@ export class BarsService {
     return await this.databaseService.bars.create({ data: createBarDto });
   }
 
-  async findAll() {
+  async findAll(page: number = 1, limit: number = 5, takeAll: boolean = false) {
+    const skip = (page - 1) * limit;
+
     return await this.databaseService.bars.findMany({
+      skip: takeAll ? 0 : skip,
+      take: takeAll ? undefined : limit,
       include: {
         images: true,
       },
