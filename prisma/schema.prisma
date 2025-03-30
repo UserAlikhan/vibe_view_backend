@@ -47,6 +47,7 @@ model Bars {
   city String
   zipCode String
   isOpen Boolean @default(false)
+  isLiveFeedAvailable Boolean @default(false)
   reserve_link String?
   website_link String?
   phone_number String?

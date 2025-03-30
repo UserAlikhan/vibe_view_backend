@@ -14,7 +14,6 @@ import { Prisma } from '@prisma/client';
 import { Roles } from 'src/decorators/roles.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { FilterBarsDto } from './bars.types';
 
 @Controller('bars')
 @UseGuards(RolesGuard)
@@ -48,6 +47,13 @@ export class BarsController {
     return await this.barsService.getBarsBasedOnFilters(filters);
   }
 
+  @Get("/search")
+  async searchBars(@Query() query: { search: string }) {
+    const searchTerm = query.search;
+    console.log("searchTerm ", searchTerm)
+    return await this.barsService.searchBars(searchTerm)
+  }
+
   @Post('/nearestToYou')
   async findNearestToYou(
     @Body() coordinates: { latitude: number; longitude: number },
@@ -71,6 +77,14 @@ export class BarsController {
     @Body() updateBarDto: Prisma.BarsUpdateInput,
   ) {
     return await this.barsService.update(+id, updateBarDto);
+  }
+
+  @Patch(":barId/updateLiveFeed")
+  @Roles(["ADMIN"])
+  @UseGuards(AuthGuard)
+  async updateLiveFeed(@Param("barId") barId: string, @Query() query: { isLiveFeedAvailable: string }) {
+    const isLiveFeedAvailable = query.isLiveFeedAvailable === "true"
+    return await this.barsService.updateLiveFeed(barId, isLiveFeedAvailable)
   }
 
   @Delete(':id')

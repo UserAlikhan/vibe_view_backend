@@ -10,7 +10,8 @@ export class BarsService {
   async create(createBarDto: Prisma.BarsCreateInput) {
     return await this.databaseService.bars.create({ data: createBarDto });
   }
-
+  // get all bars function with pagination
+  // if takeAll is true, return all bars
   async findAll(page: number = 1, limit: number = 5, takeAll: boolean = false) {
     const skip = (page - 1) * limit;
 
@@ -37,9 +38,7 @@ export class BarsService {
   async filtrationOptions() {
     // All the filteration options
     const options = Object.keys(Prisma.BarsScalarFieldEnum).filter(
-      (key) => key !== 'id' && key !== "name" && key !== "rating" && key !== "country" && key !== "address" 
-      && key !== "reserve_link" && key !== "longitude" && key !== "latitude" && key !== "zipCode" 
-      && key !== "createdAt" && key !== "updatedAt" && key !== "description"
+      (key) => key === "average_cocktail_price" || key === "state" || key === "city" || key === "isOpen" || key === "website_link" || key === "phone_number"
     )
 
     const allTheData = await this.databaseService.bars.findMany();
@@ -209,6 +208,33 @@ export class BarsService {
     return barsWithDistance;
   }
 
+  async searchBars(searchTerm: string) {
+    // Handle empty search term
+    if (!searchTerm || searchTerm.trim() === '') {
+      return [];
+    }
+    
+    try {
+      const where: Prisma.BarsWhereInput = {
+        OR: [
+          { name: { contains: searchTerm, mode: "insensitive" } },
+          { address: { contains: searchTerm, mode: "insensitive" } },
+          { zipCode: { contains: searchTerm, mode: "insensitive" }},
+          { city: { contains: searchTerm, mode: "insensitive" }},
+          { state: { contains: searchTerm, mode: "insensitive" }},
+        ]
+      };
+
+      return await this.databaseService.bars.findMany({
+        where: where
+      })
+      
+    } catch (error) {
+      console.error("Error searching bars:", error);
+      throw new Error("Failed to search bars");
+    }
+  }
+
   async update(id: number, updateBarDto: Prisma.BarsUpdateInput) {
     return await this.databaseService.bars.update({
       where: {
@@ -218,6 +244,17 @@ export class BarsService {
     });
   }
 
+  async updateLiveFeed(barId: string, isLiveFeedAvailable: boolean) {
+    return await this.databaseService.bars.update({
+      where: {
+        id: +barId,
+      },
+      data: {
+        isLiveFeedAvailable: isLiveFeedAvailable
+      }
+    })
+  }
+ 
   async remove(id: number) {
     return await this.databaseService.bars.delete({
       where: {
