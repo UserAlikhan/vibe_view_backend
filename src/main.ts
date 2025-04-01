@@ -14,7 +14,7 @@ const limiter = rateLimit({
 // auth limiter
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 70, // limit each IP to 70 failed attempts per hour
+  max: 25, // limit each IP to 25 failed attempts per hour
   message: 'Too many failed attempts, please try again later',
 });
 
@@ -23,7 +23,7 @@ async function bootstrap() {
   // RATE LIMITER
   app.use('/auth', authLimiter);
   app.use('/users', limiter);
-  // app.use('/bars', limiter);
+  app.use('/bars', limiter);
   app.use('/reviews', limiter);
   app.use('/favorites', limiter);
   // HELMET
