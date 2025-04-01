@@ -26,6 +26,7 @@ model Users {
   password String
   isGoogleAccount Boolean @default(false)
   role ROLES @default(USER)
+  avatarName String?
 
   favorites Favorites[]
   reviews Reviews[]
