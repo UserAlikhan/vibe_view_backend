@@ -14,14 +14,15 @@ const limiter = rateLimit({
 // auth limiter
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 25, // limit each IP to 25 failed attempts per hour
+  max: 50000000, // limit each IP to 50 failed attempts per hour
   message: 'Too many failed attempts, please try again later',
 });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   // RATE LIMITER
-  app.use('/auth', authLimiter);
+  // app.use('/auth', authLimiter);
   app.use('/users', limiter);
   app.use('/bars', limiter);
   app.use('/reviews', limiter);

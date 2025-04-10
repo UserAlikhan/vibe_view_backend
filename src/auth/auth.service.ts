@@ -15,10 +15,14 @@ export class AuthService {
     private jwtService: JwtService,
   ) { }
 
-  async login(data: { email: string; username: string; password: string }) {
+  async login(data: { email: string; username?: string; password: string }) {
     const user = await this.usersService.findByEmail(data.email);
-    const lowerCaseUsername = data.username.toLocaleLowerCase();
-    if (user?.email !== data.email || user?.username !== lowerCaseUsername) {
+
+    const lowerCaseUsername = data.username 
+      ? data.username?.toLocaleLowerCase() 
+      : null;
+
+    if (user?.isGoogleAccount && user?.username !== lowerCaseUsername) {
       throw new UnauthorizedException();
     }
 
@@ -31,6 +35,7 @@ export class AuthService {
       sub: user.id,
       username: lowerCaseUsername,
       email: data.email,
+      isGoogleAccount: user.isGoogleAccount,
     };
 
     return {
@@ -47,7 +52,12 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
     
-    registrationDto.username = registrationDto.username.toLocaleLowerCase();
+    registrationDto.username = registrationDto.username 
+      ? registrationDto.username.toLocaleLowerCase() 
+      : null;
+
+    console.log("registrationDto", registrationDto)
+
     return await this.usersService.create(registrationDto);
   }
 }

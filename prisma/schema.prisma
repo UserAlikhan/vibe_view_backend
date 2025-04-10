@@ -22,7 +22,7 @@ model Users {
   id Int @default(autoincrement()) @id
   clerk_id String? @unique
   email String @unique
-  username String @unique
+  username String? @unique
   password String
   isGoogleAccount Boolean @default(false)
   role ROLES @default(USER)
@@ -67,7 +67,7 @@ model BarsImages {
   url String
   bar_id Int
 
-  bar Bars @relation(fields: [bar_id], references: [id])
+  bar Bars @relation(fields: [bar_id], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -80,8 +80,8 @@ model Reviews {
   user_id Int
   bar_id Int
 
-  user Users @relation(fields: [user_id], references: [id])
-  bar Bars @relation(fields: [bar_id], references: [id])
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  bar Bars @relation(fields: [bar_id], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -92,8 +92,8 @@ model Favorites {
   user_id Int
   bar_id Int
   
-  user Users @relation(fields: [user_id], references: [id])
-  bar Bars @relation(fields: [bar_id], references: [id])
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  bar Bars @relation(fields: [bar_id], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

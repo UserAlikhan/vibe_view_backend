@@ -73,7 +73,8 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException("User not found");
     }
-
+    // If there is no avatar return null
+    // so we do not send fake link to the user
     if (!user.avatarName) {
       return null;
     }
