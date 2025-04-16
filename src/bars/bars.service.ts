@@ -1,11 +1,81 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 import { FilterBarsDto } from './bars.types';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as sharp from 'sharp';
+import { BarsImagesService } from 'src/bars-images/bars-images.service';
+
+interface ImageProcessingOptions {
+  width: number;
+  height: number;
+  quality: number;
+  format: 'jpeg' | 'png';
+}
 
 @Injectable()
 export class BarsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  private s3Client: S3Client;
+  private readonly defaultImageOptions: ImageProcessingOptions = {
+    width: 500,
+    height: 500,
+    quality: 90,
+    format: 'png'
+  };
+
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly barsImagesService: BarsImagesService
+  ) {
+    this.s3Client = new S3Client({
+      region: process.env.BUCKET_REGION,
+      credentials: {
+        accessKeyId: process.env.ACCESS_KEY,
+        secretAccessKey: process.env.SECRET_ACCESS_KEY,
+      }
+    })
+  }
+
+  private async processImage(
+    image: Express.Multer.File,
+    options: Partial<ImageProcessingOptions> = {}
+  ) {
+    const processOptions = { ...this.defaultImageOptions, ...options };
+
+    try {
+      let imageProcessor = sharp(image.buffer)
+        .resize({
+          width: this.defaultImageOptions.width,
+          height: this.defaultImageOptions.height,
+          fit: "contain",
+          position: "center"
+        }
+      )
+
+      switch (processOptions.format) {
+        case 'jpeg':
+          imageProcessor = imageProcessor.jpeg({
+            quality: processOptions.quality,
+            progressive: true,
+            mozjpeg: true,
+          })
+          break;
+        case 'png':
+          imageProcessor = imageProcessor.png({
+            quality: processOptions.quality,
+            progressive: true,
+            compressionLevel: 9,
+          })
+          break;
+      }
+
+      return await imageProcessor.sharpen().withMetadata().toBuffer()
+    } catch (error) {
+      console.error("Failed to process image ", error)
+      throw new Error("Failed to process image")
+    }
+  }
 
   async create(createBarDto: Prisma.BarsCreateInput) {
     return await this.databaseService.bars.create({ data: createBarDto });
@@ -15,13 +85,20 @@ export class BarsService {
   async findAll(page: number = 1, limit: number = 5, takeAll: boolean = false) {
     const skip = (page - 1) * limit;
 
-    return await this.databaseService.bars.findMany({
+    const allBars = await this.databaseService.bars.findMany({
       skip: takeAll ? 0 : skip,
       take: takeAll ? undefined : limit,
-      include: {
-        images: true,
-      },
     });
+
+    let barsWithUrls = await Promise.all(allBars.map(async (bar) => {
+      const urls = await this.barsImagesService.getImageUrlsForSpecificBar(bar.id)
+      return {
+        ...bar,
+        urls: urls
+      }
+    }));
+
+    return barsWithUrls;
   }
 
   async findOne(id: number) {
@@ -38,7 +115,7 @@ export class BarsService {
   async filtrationOptions() {
     // All the filteration options
     const options = Object.keys(Prisma.BarsScalarFieldEnum).filter(
-      (key) => key === "average_cocktail_price" || key === "state" || key === "city" || key === "isOpen" || key === "website_link" || key === "phone_number"
+      (key) => key === "average_cocktail_price" || key === "state" || key === "city" || key === "isOpen" || key === "website_link" || key === "phone_number" || key === "isLiveFeedAvailable"
     )
 
     const allTheData = await this.databaseService.bars.findMany();
@@ -46,10 +123,10 @@ export class BarsService {
     const keysWithValues = options.map((option) => {
       // Creating unique set of available values for each option
       const values = [...new Set(allTheData.map((data) => data[option]))];
-      const testValues = ["$60–70", "$1–10", "$90–100", "$20–30", "$40–50", "$30–40", "$10–20", "$50–60", "$70–80", "$80–90"]
+      // const testValues = ["$60–70", "$1–10", "$90–100", "$20–30", "$40–50", "$30–40", "$10–20", "$50–60", "$70–80", "$80–90"]
 
       if (option === "average_cocktail_price") {
-        const cleanedValues = testValues.filter((value) => value !== "N/A" && value !== null && value !== undefined)
+        const cleanedValues: string[] = values.filter((value) => value !== "N/A" && value !== null && value !== undefined) as string[]
         const firstPriceList = cleanedValues.map((value) => {
           return value.split("–")[0].split("$")[1]
           }
@@ -81,6 +158,10 @@ export class BarsService {
         return { [option]: ["open", "closed"] }
       }
 
+      if (option === 'isLiveFeedAvailable') {
+        return { [option]: ["yes", "no"] }
+      }
+
       if (option === "website_link" || option === "phone_number") {
         return { [option]: ["has", "no"] }
       }
@@ -110,7 +191,14 @@ export class BarsService {
                !!filters.isOpen
       };
     }
-    
+    if (filters.isLiveFeedAvailable !== undefined) {
+      whereClause.isLiveFeedAvailable = {
+        equals: typeof filters.isLiveFeedAvailable === "string" ?
+          (filters.isLiveFeedAvailable as string) === "yes" :
+          !!filters.isLiveFeedAvailable
+      }
+    }
+
     // Get initial results without website_link and phone_number filters
     let filteredOptions = await this.databaseService.bars.findMany({
       where: whereClause,
@@ -167,11 +255,7 @@ export class BarsService {
   }
 
   async findNearestToYou(latitude: number, longitude: number) {
-    const allBars = await this.databaseService.bars.findMany({
-      include: {
-        images: true,
-      },
-    });
+    const allBars = await this.databaseService.bars.findMany();
 
     const haversineDistance = (
       lat1: number,
@@ -205,7 +289,15 @@ export class BarsService {
 
     barsWithDistance.sort((a, b) => a.distance - b.distance);
 
-    return barsWithDistance;
+    const barsWithUrls = await Promise.all(barsWithDistance.map(async (bar) => {
+      const urls = await this.barsImagesService.getImageUrlsForSpecificBar(bar.id)
+      return {
+        ...bar,
+        urls: urls
+      }
+    }));
+
+    return barsWithUrls;
   }
 
   async searchBars(searchTerm: string) {
@@ -261,5 +353,112 @@ export class BarsService {
         id: id,
       },
     });
+  }
+
+  async deleteAll() {
+    return await this.databaseService.bars.deleteMany();
+  }
+
+  async uploadLogo(
+    logo: Express.Multer.File,
+    barId: number,
+    options: Partial<ImageProcessingOptions> = {}
+  ) {
+    const bar = await this.findOne(barId);
+
+    if (!bar) {
+      throw new NotFoundException("Bar not found");
+    }
+
+    const processedLogoBuffer = await this.processImage(logo, options);
+
+    const randomImageName = () => {
+      return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+
+    const imageName = randomImageName();
+
+    const params = {
+      Bucket: process.env.BUCKET_NAME,
+      Key: "Logos/" + (bar.logoName ? bar.logoName: imageName),
+      Body: processedLogoBuffer,
+      ContentType: logo.mimetype,
+    }
+
+    const command = new PutObjectCommand(params);
+
+    try {
+      const response = await this.s3Client.send(command);
+
+      if (response && !bar.logoName) {
+        const updatedBar = await this.databaseService.bars.update({
+          where: {
+            id: barId,
+          },
+          data: {
+            logoName: imageName
+          }
+        })
+
+        return updatedBar;
+      }
+
+      return bar;
+    } catch (error) {
+      throw new Error("Error uploading logo");
+    }
+  }
+
+  async getLogo(barId: number) {
+    const bar = await this.findOne(barId);
+
+    if (!bar) {
+      throw new NotFoundException("Bar not found");
+    }
+
+    if (!bar.logoName) {
+      return null;
+    } 
+
+    const getObjectParams = {
+      Bucket: process.env.BUCKET_NAME,
+      Key: "Logos/" + bar.logoName,
+    }
+
+    const command = new GetObjectCommand(getObjectParams);
+    const url = await getSignedUrl(this.s3Client, command, {
+      expiresIn: 60 * 60 * 24 * 7 - 60, // 7 days - 1 minute
+    })
+
+    return url;
+  }
+
+  async deleteLogo(barId: number) {
+    const bar = await this.findOne(barId);
+
+    if (!bar) {
+      throw new NotFoundException("Bar not found");
+    }
+
+    if (bar.logoName) { 
+      const params = {
+        Bucket: process.env.BUCKET_NAME,
+        Key: "Logos/" + bar.logoName,
+      }
+
+      const command = new DeleteObjectCommand(params);
+      await this.s3Client.send(command);
+
+      const barWithDeletedLogo = await this.databaseService.bars.update({
+        where: {
+          id: barId,
+        },
+        data: {
+          logoName: null
+        }
+      })
+
+      return barWithDeletedLogo;
+    }
   }
 }

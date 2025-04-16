@@ -1,3 +1,4 @@
+// To reset db "npx prisma migrate reset"
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -49,6 +50,7 @@ model Bars {
   zipCode String
   isOpen Boolean @default(false)
   isLiveFeedAvailable Boolean @default(false)
+  logoName String?
   reserve_link String?
   website_link String?
   phone_number String?
@@ -64,8 +66,9 @@ model Bars {
 
 model BarsImages {
   id Int @default(autoincrement()) @id
-  url String
+  image_name String
   bar_id Int
+  isCoverImage Boolean @default(false)
 
   bar Bars @relation(fields: [bar_id], references: [id], onDelete: Cascade)
 

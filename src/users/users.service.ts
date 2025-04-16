@@ -46,7 +46,6 @@ export class UsersService {
     try {
 
       const response = await this.s3Client.send(command);
-      console.log("Avatar was uploaded successfully");
 
       if (response) {
         // After image was uploaded into s3, update the user in the database

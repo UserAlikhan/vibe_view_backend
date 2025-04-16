@@ -10,9 +10,10 @@ import { FavoritesController } from './favorites/favorites.controller';
 import { FavoritesModule } from './favorites/favorites.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './guards/roles.guard';
+import { BarsImagesModule } from './bars-images/bars-images.module';
 
 @Module({
-  imports: [DatabaseModule, BarsModule, UsersModule, ReviewsModule, FavoritesModule, AuthModule],
+  imports: [DatabaseModule, BarsModule, UsersModule, ReviewsModule, FavoritesModule, AuthModule, BarsImagesModule],
   controllers: [AppController, FavoritesController],
   providers: [AppService, FavoritesService, RolesGuard],
 })

@@ -8,12 +8,18 @@ import {
   Delete,
   UseGuards,
   Query,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  UseInterceptors,
 } from '@nestjs/common';
 import { BarsService } from './bars.service';
 import { Prisma } from '@prisma/client';
 import { Roles } from 'src/decorators/roles.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('bars')
 @UseGuards(RolesGuard)
@@ -63,6 +69,41 @@ export class BarsController {
       coordinates.longitude,
     );
   }
+  
+  @Post("/upload-logo")
+  @Roles(["ADMIN"])
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor("logo"))
+  async uploadLogo(
+    @Body() dataDto: { barId: number },
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 15 }),
+          new FileTypeValidator({ fileType: "image/*" })
+        ]
+      })
+    ) logo: Express.Multer.File
+  ) {
+    return await this.barsService.uploadLogo(logo, +dataDto.barId, {
+      width: 500,
+      height: 500,
+      quality: 90,
+      format: "png"
+    });
+  }
+
+  @Get("get-logo/:barId")
+  async getLogo(@Param("barId") barId: string) {
+    return await this.barsService.getLogo(+barId)
+  }
+
+  @Delete("delete-logo/:barId")
+  @Roles(["ADMIN"])
+  @UseGuards(AuthGuard)
+  async deleteLogo(@Param("barId") barId: string) {
+    return await this.barsService.deleteLogo(+barId)
+  }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
@@ -92,5 +133,12 @@ export class BarsController {
   @UseGuards(AuthGuard)
   async remove(@Param('id') id: string) {
     return await this.barsService.remove(+id);
+  }
+
+  @Delete("/deleteAll")
+  @Roles(["ADMIN"])
+  @UseGuards(AuthGuard)
+  async deleteAll() {
+    return await this.barsService.deleteAll();
   }
 }

@@ -49,9 +49,6 @@ export class UsersController {
       })
     ) avatar: Express.Multer.File
   ) {
-    console.log("UPLOAD AVATAR ", avatar)
-    console.log("DATA DTO ", dataDto)
-    // return avatar;
     return await this.usersService.uploadAvatar(avatar, +dataDto.userId);
   }
 

@@ -24,7 +24,7 @@ async function bootstrap() {
   // RATE LIMITER
   // app.use('/auth', authLimiter);
   app.use('/users', limiter);
-  app.use('/bars', limiter);
+  // app.use('/bars', limiter);
   app.use('/reviews', limiter);
   app.use('/favorites', limiter);
   // HELMET
