@@ -20,7 +20,7 @@ export class BarsImagesService {
         })
     }
 
-    async uploadImage(image: Express.Multer.File, barId: number, isCoverImage?: boolean) {
+    async uploadImage(image: Express.Multer.File, barId: number, isCoverImage?: string) {
         const bar = await this.databaseService.bars.findUnique({
             where: {
                 id: barId
@@ -55,7 +55,7 @@ export class BarsImagesService {
                     data: {
                         image_name: imageName,
                         bar_id: barId,
-                        isCoverImage: isCoverImage,
+                        isCoverImage: isCoverImage === "true",
                     }
                 })
 

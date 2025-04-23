@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from 'src/dtos/create-user.dto';
+import { createClerkClient } from '@clerk/backend';
 
 @Injectable()
 export class AuthService {
@@ -15,8 +16,19 @@ export class AuthService {
     private jwtService: JwtService,
   ) { }
 
-  async login(data: { email: string; username?: string; password: string }) {
+  async login(data: { email: string; username?: string; password: string, attempts: number }) {
     const user = await this.usersService.findByEmail(data.email);
+
+    // If the user has attempted to login more than 5 times, 
+    // lock the user in Clerk for 1 hour
+    if (data.attempts > 5) { 
+      const clerkResult = await createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY,
+        publishableKey: process.env.CLERK_PUBLISHABLE_KEY
+      }).users.lockUser(user.clerk_id);
+
+      return clerkResult;
+    }
 
     const lowerCaseUsername = data.username 
       ? data.username?.toLocaleLowerCase() 

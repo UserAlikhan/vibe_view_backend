@@ -63,6 +63,11 @@ export class UsersController {
   async deleteAvatar(@Param('userId') userId: string) {
     return await this.usersService.deleteAvatar(+userId);
   }
+  
+  @Put("reset-password/:userId")
+  async resetPassword(@Param('userId') userId: string, @Body() dataDto: { resetToken: string, newPassword: string }) {
+    return await this.usersService.resetPassword(+userId, dataDto.resetToken, dataDto.newPassword);
+  }
 
   @Get(':id')
   @Roles(['ADMIN', 'USER'])

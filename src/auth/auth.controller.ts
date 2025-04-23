@@ -8,7 +8,7 @@ export class AuthController {
 
   @Post('login')
   async signIn(
-    @Body() signInData: { email: string; username: string; password: string },
+    @Body() signInData: { email: string; username: string; password: string, attempts: number },
   ) {
     return await this.authService.login(signInData);
   }

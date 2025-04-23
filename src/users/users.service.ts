@@ -5,6 +5,8 @@ import { UpdateUserDto } from 'src/dtos/update-user.dto';
 import { CreateUserDto } from 'src/dtos/create-user.dto';
 import { PutObjectCommand, GetObjectCommand, S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createClerkClient, Client, verifyToken } from '@clerk/backend';
+
 
 @Injectable()
 export class UsersService {
@@ -203,6 +205,24 @@ export class UsersService {
         isGoogleAccount: true,
       }
     });
+  }
+
+  async resetPassword(userId: number, resetToken: string, newPassword: string) {
+    
+    // const clerk = await createClerkClient({
+    //   secretKey: "sk_test_DsvjSl1r1uwXBUPcIzxPyZGb4lc5CVIrPkoplu2dAC",
+    //   publishableKey: "pk_test_d2lsbGluZy1iYXNzLTk0LmNsZXJrLmFjY291bnRzLmRldiQ"
+    // }).users.lockUser(user.clerk_id);
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    return await this.databaseService.users.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        password: hashedPassword,
+      }
+    })
   }
 
   async remove(id: number) {

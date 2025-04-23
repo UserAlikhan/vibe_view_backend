@@ -317,9 +317,19 @@ export class BarsService {
         ]
       };
 
-      return await this.databaseService.bars.findMany({
+      const bars = await this.databaseService.bars.findMany({
         where: where
       })
+
+      const barsWithUrls = await Promise.all(bars.map(async (bar) => {
+        const urls = await this.barsImagesService.getImageUrlsForSpecificBar(bar.id)
+        return {
+          ...bar,
+          urls: urls
+        }
+      }));
+
+      return barsWithUrls;
       
     } catch (error) {
       console.error("Error searching bars:", error);
