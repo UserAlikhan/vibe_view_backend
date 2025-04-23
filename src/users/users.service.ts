@@ -208,11 +208,6 @@ export class UsersService {
   }
 
   async resetPassword(userId: number, resetToken: string, newPassword: string) {
-    
-    // const clerk = await createClerkClient({
-    //   secretKey: "sk_test_DsvjSl1r1uwXBUPcIzxPyZGb4lc5CVIrPkoplu2dAC",
-    //   publishableKey: "pk_test_d2lsbGluZy1iYXNzLTk0LmNsZXJrLmFjY291bnRzLmRldiQ"
-    // }).users.lockUser(user.clerk_id);
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     return await this.databaseService.users.update({
