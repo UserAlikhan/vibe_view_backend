@@ -207,12 +207,12 @@ export class UsersService {
     });
   }
 
-  async resetPassword(userId: number, resetToken: string, newPassword: string) {
-
+  async resetPassword(email: string, newPassword: string) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+
     return await this.databaseService.users.update({
       where: {
-        id: userId,
+        email: email,
       },
       data: {
         password: hashedPassword,

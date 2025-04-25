@@ -21,13 +21,19 @@ export class AuthService {
 
     // If the user has attempted to login more than 5 times, 
     // lock the user in Clerk for 1 hour
-    if (data.attempts > 5) { 
-      const clerkResult = await createClerkClient({
-        secretKey: process.env.CLERK_SECRET_KEY,
-        publishableKey: process.env.CLERK_PUBLISHABLE_KEY
-      }).users.lockUser(user.clerk_id);
+    if (data.attempts >= 5) {
+      if (user) {
+        await createClerkClient({
+          secretKey: process.env.CLERK_SECRET_KEY,
+          publishableKey: process.env.CLERK_PUBLISHABLE_KEY
+        }).users.lockUser(user.clerk_id);
 
-      return clerkResult;
+        return {
+          isLocked: true,
+        };
+      } else {
+        throw new UnauthorizedException('User not found');
+      }
     }
 
     const lowerCaseUsername = data.username 

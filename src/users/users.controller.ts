@@ -34,6 +34,11 @@ export class UsersController {
     return await this.usersService.findAll();
   }
 
+  @Put("reset-password")
+  async resetPassword(@Body() dataDto: { email: string, newPassword: string }) {
+    return await this.usersService.resetPassword(dataDto.email, dataDto.newPassword);
+  }
+
   @Post("upload-avatar")
   @Roles(['ADMIN', 'USER'])
   @UseGuards(AuthGuard)
@@ -62,11 +67,6 @@ export class UsersController {
   @Delete("delete-avatar/:userId")
   async deleteAvatar(@Param('userId') userId: string) {
     return await this.usersService.deleteAvatar(+userId);
-  }
-  
-  @Put("reset-password/:userId")
-  async resetPassword(@Param('userId') userId: string, @Body() dataDto: { resetToken: string, newPassword: string }) {
-    return await this.usersService.resetPassword(+userId, dataDto.resetToken, dataDto.newPassword);
   }
 
   @Get(':id')
