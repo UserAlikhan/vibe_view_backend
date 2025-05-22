@@ -112,6 +112,50 @@ export class BarsService {
     });
   }
 
+  async getBestRatingBars(page: number = 1, limit: number = 5) {
+    const skip = (page - 1) * limit;
+
+    const bestRatingBars = await this.databaseService.bars.findMany({
+      skip: skip,
+      take: limit,
+      orderBy: {
+        rating: "desc"
+      }
+    })
+
+    const barsWithUrls = await Promise.all(bestRatingBars.map(async (bar) => {
+      const urls = await this.barsImagesService.getImageUrlsForSpecificBar(bar.id);
+      return {
+        ...bar,
+        urls: urls
+      }
+    }))
+
+    return barsWithUrls;
+  }
+
+  async getBarsBasedOnCity(page: number = 1, limit: number = 5, city: string) {
+    const skip = (page - 1) * limit;
+
+    const whereClause: Prisma.BarsWhereInput = { city: { equals: city } };
+
+    const bars = await this.databaseService.bars.findMany({
+      skip: skip,
+      take: limit,
+      where: whereClause,
+    })
+  
+    const barsWithUrls = await Promise.all(bars.map(async (bar) => {
+      const urls = await this.barsImagesService.getImageUrlsForSpecificBar(bar.id);
+      return {
+        ...bar,
+        urls: urls
+      }
+    }))
+
+    return barsWithUrls;
+  }
+
   async filtrationOptions() {
     // All the filteration options
     const options = Object.keys(Prisma.BarsScalarFieldEnum).filter(

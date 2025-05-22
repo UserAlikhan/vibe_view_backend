@@ -48,6 +48,23 @@ export class BarsController {
     return await this.barsService.filtrationOptions();
   }
 
+  @Get("/getBestRatingBars")
+  async getBestRatingBars(@Query() query: { page: number, limit: number }) {
+    return await this.barsService.getBestRatingBars(
+      Number(query.page) || 1,
+      Number(query.limit) || 5,
+    );
+  }
+
+  @Get("/getBarsBasedOnCity")
+  async getBarsBasedOnCity(@Query() query: { page: number, limit: number, city: string }) {
+    return await this.barsService.getBarsBasedOnCity(
+      Number(query.page) || 1,
+      Number(query.limit) || 5,
+      query.city,
+    )
+  }
+
   @Get("/getBarsBasedOnFilters")
   async getBarsBasedOnFilters(@Query() filters: any) {
     return await this.barsService.getBarsBasedOnFilters(filters);
