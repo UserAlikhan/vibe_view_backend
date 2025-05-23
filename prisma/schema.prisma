@@ -49,7 +49,6 @@ model Bars {
   city String
   zipCode String
   isOpen Boolean @default(false)
-  isLiveFeedAvailable Boolean @default(false)
   logoName String?
   reserve_link String?
   website_link String?
@@ -59,6 +58,7 @@ model Bars {
   favorites Favorites[]
   reviews Reviews[]
   images BarsImages[]
+  cameraUrls CameraUrls[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -96,6 +96,17 @@ model Favorites {
   bar_id Int
   
   user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  bar Bars @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CameraUrls {
+  id Int @default(autoincrement()) @id
+  bar_id Int
+  url String
+
   bar Bars @relation(fields: [bar_id], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())

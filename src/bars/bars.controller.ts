@@ -137,14 +137,6 @@ export class BarsController {
     return await this.barsService.update(+id, updateBarDto);
   }
 
-  @Patch(":barId/updateLiveFeed")
-  @Roles(["ADMIN"])
-  @UseGuards(AuthGuard)
-  async updateLiveFeed(@Param("barId") barId: string, @Query() query: { isLiveFeedAvailable: string }) {
-    const isLiveFeedAvailable = query.isLiveFeedAvailable === "true"
-    return await this.barsService.updateLiveFeed(barId, isLiveFeedAvailable)
-  }
-
   @Delete(':id')
   @Roles(['ADMIN'])
   @UseGuards(AuthGuard)

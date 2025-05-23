@@ -88,6 +88,9 @@ export class BarsService {
     const allBars = await this.databaseService.bars.findMany({
       skip: takeAll ? 0 : skip,
       take: takeAll ? undefined : limit,
+      include: {
+        cameraUrls: true
+      }
     });
 
     let barsWithUrls = await Promise.all(allBars.map(async (bar) => {
@@ -108,6 +111,7 @@ export class BarsService {
       },
       include: {
         images: true,
+        cameraUrls: true
       },
     });
   }
@@ -118,6 +122,9 @@ export class BarsService {
     const bestRatingBars = await this.databaseService.bars.findMany({
       skip: skip,
       take: limit,
+      include: {
+        cameraUrls: true,
+      },
       orderBy: {
         rating: "desc"
       }
@@ -143,6 +150,9 @@ export class BarsService {
       skip: skip,
       take: limit,
       where: whereClause,
+      include: {
+        cameraUrls: true,
+      },
     })
   
     const barsWithUrls = await Promise.all(bars.map(async (bar) => {
@@ -159,10 +169,14 @@ export class BarsService {
   async filtrationOptions() {
     // All the filteration options
     const options = Object.keys(Prisma.BarsScalarFieldEnum).filter(
-      (key) => key === "average_cocktail_price" || key === "state" || key === "city" || key === "isOpen" || key === "website_link" || key === "phone_number" || key === "isLiveFeedAvailable"
+      (key) => key === "average_cocktail_price" || key === "state" || key === "city" || key === "isOpen" || key === "website_link" || key === "phone_number"
     )
 
-    const allTheData = await this.databaseService.bars.findMany();
+    const allTheData = await this.databaseService.bars.findMany({
+      include: {
+        cameraUrls: true,
+      },
+    });
 
     const keysWithValues = options.map((option) => {
       // Creating unique set of available values for each option
@@ -202,10 +216,6 @@ export class BarsService {
         return { [option]: ["open", "closed"] }
       }
 
-      if (option === 'isLiveFeedAvailable') {
-        return { [option]: ["yes", "no"] }
-      }
-
       if (option === "website_link" || option === "phone_number") {
         return { [option]: ["has", "no"] }
       }
@@ -219,8 +229,11 @@ export class BarsService {
   }
 
   async getBarsBasedOnFilters(filters: FilterBarsDto) {
-    console.log("FILTERSGGG ", filters)
-    if (Object.keys(filters).length === 0) return await this.databaseService.bars.findMany()
+    if (Object.keys(filters).length === 0) return await this.databaseService.bars.findMany({
+      include: {
+        cameraUrls: true,
+      },
+    })
 
     // First, only include non-undefined filters in the where clause
     const whereClause: any = {};
@@ -235,13 +248,6 @@ export class BarsService {
                !!filters.isOpen
       };
     }
-    if (filters.isLiveFeedAvailable !== undefined) {
-      whereClause.isLiveFeedAvailable = {
-        equals: typeof filters.isLiveFeedAvailable === "string" ?
-          (filters.isLiveFeedAvailable as string) === "yes" :
-          !!filters.isLiveFeedAvailable
-      }
-    }
 
     // Get initial results without website_link and phone_number filters
     let filteredOptions = await this.databaseService.bars.findMany({
@@ -251,11 +257,8 @@ export class BarsService {
       },
     });
     
-    console.log("Initial results count:", filteredOptions.length);
-    
     // Apply website_link filter if specified
     if (filters.website_link === "has") {
-      console.log("Filtering for bars WITH website_link");
       filteredOptions = filteredOptions.filter((bar) => 
         bar.website_link !== "N/A" && 
         bar.website_link !== null && 
@@ -263,7 +266,6 @@ export class BarsService {
         bar.website_link !== ""
       );
     } else if (filters.website_link === "no") {
-      console.log("Filtering for bars WITHOUT website_link");
       filteredOptions = filteredOptions.filter(bar => 
         bar.website_link === "N/A" || 
         bar.website_link === null || 
@@ -271,12 +273,9 @@ export class BarsService {
         bar.website_link === ""
       );
     }
-    
-    console.log("After website_link filter count:", filteredOptions.length);
-    
+        
     // Apply phone_number filter if specified
     if (filters.phone_number === "has") {
-      console.log("Filtering for bars WITH phone_number");
       filteredOptions = filteredOptions.filter((bar) => 
         bar.phone_number !== "N/A" && 
         bar.phone_number !== null && 
@@ -284,7 +283,6 @@ export class BarsService {
         bar.phone_number !== ""
       );
     } else if (filters.phone_number === "no") {
-      console.log("Filtering for bars WITHOUT phone_number");
       filteredOptions = filteredOptions.filter(bar => 
         bar.phone_number === "N/A" || 
         bar.phone_number === null || 
@@ -293,13 +291,15 @@ export class BarsService {
       );
     }
     
-    console.log("Final results count:", filteredOptions.length);
-    
     return filteredOptions;
   }
 
   async findNearestToYou(latitude: number, longitude: number) {
-    const allBars = await this.databaseService.bars.findMany();
+    const allBars = await this.databaseService.bars.findMany({
+      include: {
+        cameraUrls: true,
+      },
+    });
 
     const haversineDistance = (
       lat1: number,
@@ -362,7 +362,10 @@ export class BarsService {
       };
 
       const bars = await this.databaseService.bars.findMany({
-        where: where
+        where: where,
+        include: {
+          cameraUrls: true,
+        },
       })
 
       const barsWithUrls = await Promise.all(bars.map(async (bar) => {
@@ -387,18 +390,10 @@ export class BarsService {
         id: id,
       },
       data: updateBarDto,
-    });
-  }
-
-  async updateLiveFeed(barId: string, isLiveFeedAvailable: boolean) {
-    return await this.databaseService.bars.update({
-      where: {
-        id: +barId,
+      include: {
+        cameraUrls: true,
       },
-      data: {
-        isLiveFeedAvailable: isLiveFeedAvailable
-      }
-    })
+    });
   }
  
   async remove(id: number) {
@@ -451,7 +446,10 @@ export class BarsService {
           },
           data: {
             logoName: imageName
-          }
+          },
+          include: {
+            cameraUrls: true,
+          },
         })
 
         return updatedBar;
@@ -498,7 +496,7 @@ export class BarsService {
       const params = {
         Bucket: process.env.BUCKET_NAME,
         Key: "Logos/" + bar.logoName,
-      }
+      };
 
       const command = new DeleteObjectCommand(params);
       await this.s3Client.send(command);
@@ -509,8 +507,11 @@ export class BarsService {
         },
         data: {
           logoName: null
-        }
-      })
+        },
+        include: {
+          cameraUrls: true,
+        },
+      });
 
       return barWithDeletedLogo;
     }
