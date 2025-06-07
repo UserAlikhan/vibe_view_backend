@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { ValidationPipe } from '@nestjs/common';
+import { apiKeyMiddleware } from './middlewares/apiKeyMiddleware';
 
 // Protection agains brute force atack
 const limiter = rateLimit({
@@ -21,8 +22,11 @@ const authLimiter = rateLimit({
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // API Key Middleware
+  // app.use(apiKeyMiddleware);
+
   // RATE LIMITER
-  // app.use('/auth', authLimiter);
+  app.use('/auth', authLimiter);
   app.use('/users', limiter);
   // app.use('/bars', limiter);
   app.use('/reviews', limiter);

@@ -254,6 +254,7 @@ export class BarsService {
       where: whereClause,
       include: {
         images: true,
+        cameraUrls: true,
       },
     });
     

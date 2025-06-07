@@ -217,7 +217,7 @@ export class UsersService {
       data: {
         password: hashedPassword,
       }
-    })
+    });
   }
 
   async remove(id: number) {
